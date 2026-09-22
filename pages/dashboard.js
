@@ -1,0 +1,125 @@
+import { useEffect, useState } from 'react'
+import { supabase } from '../lib/supabase'
+
+export default function Dashboard() {
+  const [clients, setClients] = useState([])
+  const [invoices, setInvoices] = useState([])
+  const [clientName, setClientName] = useState('')
+  const [clientEmail, setClientEmail] = useState('')
+  const [clientPhone, setClientPhone] = useState('')
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  const fetchData = async () => {
+    setLoading(true)
+    const { data: clientsData } = await supabase.from('clients').select('*').order('created_at', { ascending: false })
+    if (clientsData) setClients(clientsData)
+
+    const { data: invoicesData } = await supabase.from('invoices').select('*').order('created_at', { ascending: false })
+    if (invoicesData) setInvoices(invoicesData)
+
+    setLoading(false)
+  }
+
+  const addClient = async (e) => {
+    e.preventDefault()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      alert('Session expirée, veuillez vous reconnecter.')
+      window.location.href = '/login'
+      return
+    }
+
+    const { error } = await supabase.from('clients').insert([
+      { name: clientName, email: clientEmail, phone: clientPhone, user_id: user.id }
+    ])
+
+    if (error) {
+      alert('Erreur : ' + error.message)
+    } else {
+      setClientName('')
+      setClientEmail('')
+      setClientPhone('')
+      fetchData()
+    }
+  }
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    window.location.href = '/login'
+  }
+
+  return (
+    <div style={{ fontFamily: 'Arial, sans-serif', backgroundColor: '#f8fafc', minHeight: '100vh', padding: '20px' }}>
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#ffffff', padding: '15px 30px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '30px' }}>
+        <h1 style={{ margin: 0, fontSize: '24px', color: '#1e293b' }}>My Payme - Tableau de bord</h1>
+        <button onClick={handleLogout} style={{ backgroundColor: '#ef4444', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>
+          Déconnexion
+        </button>
+      </header>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '20px', maxWidth: '1200px', margin: '0 auto' }}>
+        <section style={{ backgroundColor: '#ffffff', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+          <h2 style={{ marginTop: 0, fontSize: '18px', color: '#334155' }}>Nouveau Client</h2>
+          <form onSubmit={addClient}>
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ display: 'block', fontSize: '14px', marginBottom: '4px' }}>Nom / Entreprise *</label>
+              <input type="text" value={clientName} onChange={(e) => setClientName(e.target.value)} required style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e0', borderRadius: '4px', boxSizing: 'border-box' }} />
+            </div>
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ display: 'block', fontSize: '14px', marginBottom: '4px' }}>E-mail</label>
+              <input type="email" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e0', borderRadius: '4px', boxSizing: 'border-box' }} />
+            </div>
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', fontSize: '14px', marginBottom: '4px' }}>Téléphone</label>
+              <input type="tel" value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e0', borderRadius: '4px', boxSizing: 'border-box' }} />
+            </div>
+            <button type="submit" style={{ width: '100%', backgroundColor: '#2563eb', color: '#fff', border: 'none', padding: '10px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
+              + Ajouter le client
+            </button>
+          </form>
+        </section>
+
+        <main>
+          <section style={{ backgroundColor: '#ffffff', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '20px' }}>
+            <h2 style={{ marginTop: 0, fontSize: '18px', color: '#334155' }}>Liste des Clients</h2>
+            {loading ? <p>Chargement...</p> : clients.length === 0 ? <p style={{ color: '#64748b' }}>Aucun client enregistré pour l'instant.</p> : (
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ textAlign: 'left', borderBottom: '2px solid #e2e8f0', color: '#64748b', fontSize: '14px' }}>
+                    <th style={{ padding: '8px' }}>Nom</th>
+                    <th style={{ padding: '8px' }}>E-mail</th>
+                    <th style={{ padding: '8px' }}>Téléphone</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {clients.map(c => (
+                    <tr key={c.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '8px', fontWeight: 'bold' }}>{c.name}</td>
+                      <td style={{ padding: '8px' }}>{c.email || '-'}</td>
+                      <td style={{ padding: '8px' }}>{c.phone || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </section>
+
+          <section style={{ backgroundColor: '#ffffff', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+            <h2 style={{ marginTop: 0, fontSize: '18px', color: '#334155' }}>Dernières Factures</h2>
+            {loading ? <p>Chargement...</p> : invoices.length === 0 ? <p style={{ color: '#64748b' }}>Aucune facture créée.</p> : (
+              <ul>
+                {invoices.map(inv => (
+                  <li key={inv.id}>{inv.number} - {inv.total_amount} FCFA ({inv.status})</li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </main>
+      </div>
+    </div>
+  )
+}
