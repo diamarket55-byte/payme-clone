@@ -1,0 +1,72 @@
+import { useState } from 'react'
+import { supabase } from '../lib/supabase'
+
+export default function Login() {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [isSignUp, setIsSignUp] = useState(false)
+
+  const handleAuth = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    
+    if (isSignUp) {
+      const { error } = await supabase.auth.signUp({ email, password })
+      if (error) alert(error.message)
+      else alert('Compte créé avec succès ! Tu peux maintenant te connecter.')
+    } else {
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) alert(error.message)
+      else window.location.href = '/dashboard'
+    }
+    setLoading(false)
+  }
+
+  return (
+    <div style={{ maxWidth: '400px', margin: '60px auto', fontFamily: 'Arial, sans-serif', padding: '20px', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+      <h2 style={{ textAlign: 'center', color: '#1a202c', marginBottom: '20px' }}>
+        {isSignUp ? 'Créer un compte PayMe' : 'Connexion PayMe'}
+      </h2>
+      <form onSubmit={handleAuth}>
+        <div style={{ marginBottom: '15px' }}>
+          <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', fontWeight: 'bold' }}>E-mail :</label>
+          <input 
+            type="email" 
+            value={email} 
+            onChange={(e) => setEmail(e.target.value)} 
+            required 
+            placeholder="votre@email.com"
+            style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #cbd5e0', boxSizing: 'border-box' }}
+          />
+        </div>
+        <div style={{ marginBottom: '20px' }}>
+          <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', fontWeight: 'bold' }}>Mot de passe :</label>
+          <input 
+            type="password" 
+            value={password} 
+            onChange={(e) => setPassword(e.target.value)} 
+            required 
+            placeholder="••••••••"
+            style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #cbd5e0', boxSizing: 'border-box' }}
+          />
+        </div>
+        <button 
+          type="submit" 
+          disabled={loading} 
+          style={{ width: '100%', padding: '12px', background: '#2563eb', color: '#ffffff', border: 'none', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer' }}
+        >
+          {loading ? 'Chargement...' : isSignUp ? "S'inscrire" : 'Se connecter'}
+        </button>
+      </form>
+      <div style={{ textAlign: 'center', marginTop: '15px' }}>
+        <button 
+          onClick={() => setIsSignUp(!isSignUp)} 
+          style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontSize: '14px' }}
+        >
+          {isSignUp ? 'Déjà un compte ? Se connecter' : "Pas encore de compte ? S'inscrire"}
+        </button>
+      </div>
+    </div>
+  )
+}
